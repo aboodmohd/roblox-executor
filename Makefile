@@ -1,7 +1,12 @@
 CXX = clang++
-# Dynamically detect Homebrew path
+# Explicitly try common Homebrew paths
 BREW_PREFIX = $(shell brew --prefix)
 LUA_INCLUDE = $(BREW_PREFIX)/include/lua
+# Fallback if BREW_PREFIX is empty
+ifeq ($(BREW_PREFIX),)
+    LUA_INCLUDE = /usr/local/include/lua
+endif
+
 CXXFLAGS = -std=c++17 -Wall -O3 -I$(LUA_INCLUDE)
 LDFLAGS = -L$(BREW_PREFIX)/lib -llua -lcurl
 

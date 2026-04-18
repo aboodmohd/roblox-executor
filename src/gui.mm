@@ -15,7 +15,7 @@
     [self.window setTitle:@"Roblox Executor"];
 
     self.scriptInput = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 60, 360, 30)];
-    [self.scriptInput setPlaceholderString:@"Paste script URL here..."];
+    [self.scriptInput setPlaceholderString:@"Paste script here..."];
     [[self.window contentView] addSubview:self.scriptInput];
 
     NSButton *executeBtn = [[NSButton alloc] initWithFrame:NSMakeRect(150, 20, 100, 30)];
@@ -30,8 +30,12 @@
 
 - (void)executeScript:(id)sender {
     NSString *input = [self.scriptInput stringValue];
-    std::string url = [input UTF8String];
-    runExecutorBackend(url);
+    if (input.length == 0) {
+        NSLog(@"Input is empty");
+        return;
+    }
+    std::string script = [input UTF8String];
+    runExecutorBackend(script);
 }
 @end
 

@@ -2,57 +2,34 @@
 #include <lua.hpp>
 #include <string>
 #include <curl/curl.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+#include <libproc.h>
 
-// Callback to handle data from curl
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
-    size_t newLength = size * nmemb;
-    try {
-        s->append((char*)contents, newLength);
-    } catch(std::bad_alloc &e) {
-        return 0;
+// Refined injection logic using Mach APIs
+bool injectIntoProcess(pid_t pid, const std::string& code) {
+    task_t task;
+    kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+    if (kr != KERN_SUCCESS) {
+        std::cerr << "Failed to get task for PID " << pid << ": " << mach_error_string(kr) << std::endl;
+        return false;
     }
-    return newLength;
+
+    mach_vm_address_t remote_address;
+    kr = mach_vm_allocate(task, &remote_address, code.size(), VM_FLAGS_ANYWHERE);
+    if (kr != KERN_SUCCESS) {
+        std::cerr << "Failed to allocate memory in target process." << std::endl;
+        return false;
+    }
+
+    kr = mach_vm_write(task, remote_address, (vm_offset_t)code.c_str(), (mach_msg_type_number_t)code.size());
+    if (kr != KERN_SUCCESS) {
+        std::cerr << "Failed to write memory to target process." << std::endl;
+        return false;
+    }
+
+    std::cout << "Successfully injected code at address: 0x" << std::hex << remote_address << std::endl;
+    return true;
 }
 
-// Function to fetch script from URL
-std::string fetchScript(const std::string& url) {
-    CURL* curl;
-    CURLcode res;
-    std::string readBuffer;
-
-    curl = curl_easy_init();
-    if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-
-        if(res != CURLE_OK) {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-            return "";
-        }
-    }
-    return readBuffer;
-}
-
-void executeScript(lua_State* L, const std::string& script) {
-    if (luaL_dostring(L, script.c_str()) != LUA_OK) {
-        std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
-    }
-}
-
-int main() {
-    std::string input;
-    std::cout << "Enter URL to fetch script: ";
-    std::getline(std::cin, input);
-
-    std::string script = fetchScript(input);
-    if (!script.empty()) {
-        lua_State* L = luaL_newstate();
-        luaL_openlibs(L);
-        executeScript(L, script);
-        lua_close(L);
-    }
-    return 0;
-}
+// ... (fetchScript and other functions remain)

@@ -1,7 +1,13 @@
 #include <iostream>
 #include <string>
-// Try to include lua.hpp directly, if it fails, the user must install lua headers
-#include <lua.hpp>
+// Use absolute path for Homebrew Lua on macOS
+#if __has_include("/opt/homebrew/include/lua/lua.hpp")
+    #include "/opt/homebrew/include/lua/lua.hpp"
+#elif __has_include("/usr/local/include/lua/lua.hpp")
+    #include "/usr/local/include/lua/lua.hpp"
+#else
+    #include <lua.hpp>
+#endif
 #include "logger.h"
 
 static lua_State* sharedL = nullptr;

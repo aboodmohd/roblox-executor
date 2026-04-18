@@ -1,8 +1,9 @@
 CXX = clang++
-# Add Homebrew include path for Lua
-LUA_INCLUDE = $(shell brew --prefix)/include/lua5.4
+# Dynamically detect Homebrew path
+BREW_PREFIX = $(shell brew --prefix)
+LUA_INCLUDE = $(BREW_PREFIX)/include/lua
 CXXFLAGS = -std=c++17 -Wall -O3 -I$(LUA_INCLUDE)
-LDFLAGS = -L$(shell brew --prefix)/lib -llua5.4 -lcurl
+LDFLAGS = -L$(BREW_PREFIX)/lib -llua -lcurl
 
 SRC = src/gui.mm
 OBJ = $(SRC:.mm=.o)

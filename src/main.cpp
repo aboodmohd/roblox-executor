@@ -1,42 +1,58 @@
 #include <iostream>
 #include <lua.hpp>
 #include <string>
-#include <vector>
-#include <mach/mach.h>
-#include <libproc.h>
+#include <curl/curl.h>
 
-// Mock process attachment for macOS
-bool attachToRoblox() {
-    std::cout << "Attempting to attach to Roblox process..." << std::endl;
-    // In a real implementation, you would use task_for_pid or similar Mach APIs
-    // This is a placeholder for the logic.
-    return true; 
+// Callback to handle data from curl
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
+    size_t newLength = size * nmemb;
+    try {
+        s->append((char*)contents, newLength);
+    } catch(std::bad_alloc &e) {
+        return 0;
+    }
+    return newLength;
+}
+
+// Function to fetch script from URL
+std::string fetchScript(const std::string& url) {
+    CURL* curl;
+    CURLcode res;
+    std::string readBuffer;
+
+    curl = curl_easy_init();
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+
+        if(res != CURLE_OK) {
+            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+            return "";
+        }
+    }
+    return readBuffer;
 }
 
 void executeScript(lua_State* L, const std::string& script) {
-    std::cout << "Executing script..." << std::endl;
     if (luaL_dostring(L, script.c_str()) != LUA_OK) {
-        std::cerr << "Error: " << lua_tostring(L, -1) << std::endl;
+        std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
     }
 }
 
 int main() {
-    if (!attachToRoblox()) {
-        std::cerr << "Failed to attach to Roblox." << std::endl;
-        return 1;
+    std::string input;
+    std::cout << "Enter URL to fetch script: ";
+    std::getline(std::cin, input);
+
+    std::string script = fetchScript(input);
+    if (!script.empty()) {
+        lua_State* L = luaL_newstate();
+        luaL_openlibs(L);
+        executeScript(L, script);
+        lua_close(L);
     }
-
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-
-    std::string scriptInput;
-    std::cout << "Enter script or URL: ";
-    std::getline(std::cin, scriptInput);
-
-    // Simple loading: if it looks like a URL, we'd fetch it.
-    // For now, we simulate executing the input as a Lua script.
-    executeScript(L, scriptInput);
-
-    lua_close(L);
     return 0;
 }

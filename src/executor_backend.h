@@ -1,39 +1,55 @@
 #include <iostream>
 #include <string>
-#include <lua.hpp>
+#include <vector>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+#include <libproc.h>
 #include "logger.h"
 
-static lua_State* sharedL = nullptr;
+// Function to find Roblox process PID
+pid_t findRobloxPID() {
+    int numberOfProcesses = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+    std::vector<pid_t> pids(numberOfProcesses);
+    proc_listpids(PROC_ALL_PIDS, 0, pids.data(), sizeof(pid_t) * numberOfProcesses);
 
-// Mock game:HttpGet function
-static int mock_httpGet(lua_State* L) {
-    const char* url = luaL_checkstring(L, 2); // Argument 1 is 'game' (self), Argument 2 is URL
-    Logger::log("Mock HttpGet called with URL: " + std::string(url));
-    lua_pushstring(L, "print('Mock script fetched from URL')"); // Return a dummy script
-    return 1; // Number of return values
+    for (pid_t pid : pids) {
+        char name[PROC_PIDPATHINFO_MAXSIZE];
+        proc_name(pid, name, sizeof(name));
+        // Roblox process on macOS is usually named "RobloxPlayer" or "Roblox"
+        if (std::string(name) == "RobloxPlayer" || std::string(name) == "Roblox") {
+            return pid;
+        }
+    }
+    return -1;
 }
 
-void initLua() {
-    if (!sharedL) {
-        sharedL = luaL_newstate();
-        if (!sharedL) {
-            Logger::log("CRITICAL: Failed to create Lua state.");
-            return;
-        }
-        luaL_openlibs(sharedL);
-        
-        // Mock the 'game' object and 'HttpGet' method
-        lua_newtable(sharedL); // Create 'game' table
-        lua_pushcfunction(sharedL, mock_httpGet); // Push function
-        lua_setfield(sharedL, -2, "HttpGet"); // game.HttpGet = mock_httpGet
-        lua_setglobal(sharedL, "game"); // _G.game = table
-
-        // Mock 'loadstring' (standard Lua 5.5 has load, but Roblox uses loadstring)
-        lua_getglobal(sharedL, "load");
-        lua_setglobal(sharedL, "loadstring");
-
-        Logger::log("Shared Lua VM initialized with Roblox mocks.");
+// Function to inject code into target process using Mach APIs
+bool injectIntoProcess(pid_t pid, const std::string& code) {
+    task_t task;
+    // Note: task_for_pid requires root privileges (sudo) or the app to be signed with task_for_pid-allow entitlement
+    kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+    if (kr != KERN_SUCCESS) {
+        Logger::log("ERROR: Failed to get task port for Roblox (PID: " + std::to_string(pid) + "). Error: " + std::string(mach_error_string(kr)));
+        Logger::log("HINT: You may need to run the executor with 'sudo' (e.g., sudo ./RobloxExecutor) to allow memory injection.");
+        return false;
     }
+
+    mach_vm_address_t remote_address;
+    kr = mach_vm_allocate(task, &remote_address, code.size() + 1, VM_FLAGS_ANYWHERE);
+    if (kr != KERN_SUCCESS) {
+        Logger::log("ERROR: Failed to allocate memory in Roblox process.");
+        return false;
+    }
+
+    kr = mach_vm_write(task, remote_address, (vm_offset_t)code.c_str(), (mach_msg_type_number_t)code.size() + 1);
+    if (kr != KERN_SUCCESS) {
+        Logger::log("ERROR: Failed to write code to Roblox process.");
+        return false;
+    }
+
+    Logger::log("SUCCESS: Script payload injected at memory address: 0x" + std::to_string(remote_address));
+    Logger::log("NOTE: A full executor requires a thread hijacker/execution engine inside the Roblox process to read this memory and execute it. This is a basic memory write.");
+    return true;
 }
 
 void runExecutorBackend(const std::string& script) {
@@ -42,17 +58,19 @@ void runExecutorBackend(const std::string& script) {
         return;
     }
 
-    initLua();
-    if (!sharedL) return;
-
-    Logger::log("Backend: Executing script via Lua VM...");
+    Logger::log("Backend: Scanning for active Roblox process...");
+    pid_t robloxPid = findRobloxPID();
     
-    int status = luaL_dostring(sharedL, script.c_str());
-    if (status != LUA_OK) {
-        const char* err = lua_tostring(sharedL, -1);
-        Logger::log("ERROR: Lua execution failed: " + std::string(err));
-        lua_pop(sharedL, 1);
+    if (robloxPid == -1) {
+        Logger::log("ERROR: Roblox process not found. Please launch Roblox first.");
+        return;
+    }
+
+    Logger::log("Found Roblox (PID: " + std::to_string(robloxPid) + "). Attempting injection...");
+    
+    if (injectIntoProcess(robloxPid, script)) {
+        Logger::log("Injection routine completed.");
     } else {
-        Logger::log("SUCCESS: Script executed via Lua VM.");
+        Logger::log("Injection routine failed.");
     }
 }

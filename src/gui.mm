@@ -37,12 +37,12 @@
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification {
-    // Setup menu before app finishes launching to ensure shortcuts register
+    // Force the app to act as a regular macOS app (gets focus, shows in dock)
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     [self setupMenu];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    // 1. Modern Window Setup
     NSRect frame = NSMakeRect(0, 0, 600, 400);
     NSUInteger styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView;
     
@@ -55,7 +55,6 @@
     [self.window setMovableByWindowBackground:YES];
     [self.window center];
 
-    // 2. Blurred Background (NSVisualEffectView)
     NSVisualEffectView *vibrancy = [[NSVisualEffectView alloc] initWithFrame:frame];
     [vibrancy setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
     [vibrancy setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
@@ -65,7 +64,6 @@
 
     NSView *contentView = [self.window contentView];
 
-    // 3. Multi-line Script Editor (NSTextView inside NSScrollView)
     NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 70, 560, 290)];
     [scrollView setHasVerticalScroller:YES];
     [scrollView setHasHorizontalScroller:NO];
@@ -82,21 +80,17 @@
     [[self.scriptInput textContainer] setContainerSize:NSMakeSize(contentSize.width, CGFLOAT_MAX)];
     [[self.scriptInput textContainer] setWidthTracksTextView:YES];
     
-    // Editor Styling
-    [self.scriptInput setFont:[NSFont fontWithName:@"Menlo" size:14.0]]; // Monospace font
+    [self.scriptInput setFont:[NSFont fontWithName:@"Menlo" size:14.0]];
     [self.scriptInput setTextColor:[NSColor textColor]];
     [self.scriptInput setBackgroundColor:[NSColor textBackgroundColor]];
     [self.scriptInput setRichText:NO];
     [self.scriptInput setAllowsUndo:YES];
-    [self.scriptInput setAutomaticQuoteSubstitutionEnabled:NO];
-    [self.scriptInput setAutomaticDashSubstitutionEnabled:NO];
     
     [scrollView setDocumentView:self.scriptInput];
     [contentView addSubview:scrollView];
 
-    // 4. Modern Execute Button
     NSButton *executeBtn = [[NSButton alloc] initWithFrame:NSMakeRect(20, 20, 560, 40)];
-    [executeBtn setTitle:@"Execute Script"];
+    [executeBtn setTitle:@"Inject & Execute Script"];
     [executeBtn setBezelStyle:NSBezelStyleRounded];
     [executeBtn setControlSize:NSControlSizeLarge];
     [executeBtn setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
@@ -105,7 +99,10 @@
     [contentView addSubview:executeBtn];
 
     [self.window makeKeyAndOrderFront:nil];
+    
+    // Force the app to the front immediately so Cmd+V works here, not in terminal
     [NSApp activateIgnoringOtherApps:YES];
+    [self.window makeFirstResponder:self.scriptInput];
 }
 
 - (void)executeScript:(id)sender {

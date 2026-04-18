@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Roblox Executor for macOS",
   "scripts": {
-    "dev": "make clean && make && ./RobloxExecutor"
+    "dev": "make clean && make && ./RobloxExecutor",
+    "dev:sudo": "make clean && make && sudo ./RobloxExecutor"
   },
   "author": "aboodmohd",
   "license": "MIT"

@@ -1,11 +1,13 @@
 CXX = clang++
-# Print include paths for debugging
-$(info Checking for Lua headers...)
-$(info $(shell ls /opt/homebrew/include/lua*))
 
-LUA_INCLUDES = -I/usr/local/include/lua -I/usr/local/include/lua5.4 -I/opt/homebrew/include/lua -I/opt/homebrew/include/lua5.4
-CXXFLAGS = -std=c++17 -Wall -O3 $(LUA_INCLUDES)
-LDFLAGS = -L$(shell brew --prefix)/lib -llua -lcurl
+# Use pkg-config to find Lua and Curl
+LUA_CFLAGS = $(shell pkg-config --cflags lua 2>/dev/null || pkg-config --cflags lua5.4 2>/dev/null || pkg-config --cflags lua5.3 2>/dev/null)
+LUA_LIBS = $(shell pkg-config --libs lua 2>/dev/null || pkg-config --libs lua5.4 2>/dev/null || pkg-config --libs lua5.3 2>/dev/null)
+CURL_CFLAGS = $(shell pkg-config --cflags libcurl)
+CURL_LIBS = $(shell pkg-config --libs libcurl)
+
+CXXFLAGS = -std=c++17 -Wall -O3 $(LUA_CFLAGS) $(CURL_CFLAGS)
+LDFLAGS = $(LUA_LIBS) $(CURL_LIBS)
 
 SRC = src/gui.mm
 OBJ = $(SRC:.mm=.o)

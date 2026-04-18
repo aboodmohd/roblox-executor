@@ -1,4 +1,5 @@
 #import <Cocoa/Cocoa.h>
+#include "executor_backend.h" // Assuming backend logic is here
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 @property (strong) NSWindow *window;
@@ -13,12 +14,10 @@
                                                   defer:NO];
     [self.window setTitle:@"Roblox Executor"];
 
-    // Script Input
     self.scriptInput = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 60, 360, 30)];
     [self.scriptInput setPlaceholderString:@"Paste script URL here..."];
     [[self.window contentView] addSubview:self.scriptInput];
 
-    // Execute Button
     NSButton *executeBtn = [[NSButton alloc] initWithFrame:NSMakeRect(150, 20, 100, 30)];
     [executeBtn setTitle:@"Execute"];
     [executeBtn setBezelStyle:NSBezelStyleRounded];
@@ -31,17 +30,9 @@
 
 - (void)executeScript:(id)sender {
     NSString *input = [self.scriptInput stringValue];
-    NSLog(@"Executing script from: %@", input);
-    // Logic to call the C++ execution backend would go here
+    std::string url = [input UTF8String];
+    
+    // Call C++ backend
+    runExecutorBackend(url);
 }
 @end
-
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        NSApplication *app = [NSApplication sharedApplication];
-        AppDelegate *delegate = [[AppDelegate alloc] init];
-        [app setDelegate:delegate];
-        [app run];
-    }
-    return 0;
-}

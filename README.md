@@ -10,6 +10,10 @@ A high-performance script executor for Roblox on macOS.
 
 ## Build Instructions
 Ensure you have `clang`, `lua`, and `libcurl` installed on your macOS system.
+We recommend using Homebrew:
+```bash
+brew install lua curl
+```
 
 1. Clone the repository:
    ```bash

@@ -1,6 +1,15 @@
 #include <iostream>
 #include <string>
-#include <lua.hpp>
+// Try common include paths for Lua
+#if __has_include(<lua.hpp>)
+    #include <lua.hpp>
+#elif __has_include(<lua5.4/lua.hpp>)
+    #include <lua5.4/lua.hpp>
+#elif __has_include(<lua5.3/lua.hpp>)
+    #include <lua5.3/lua.hpp>
+#else
+    #error "lua.hpp not found. Please install Lua development headers."
+#endif
 #include "logger.h"
 
 static lua_State* sharedL = nullptr;

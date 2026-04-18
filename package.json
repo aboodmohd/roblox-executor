@@ -1,0 +1,10 @@
+{
+  "name": "roblox-executor",
+  "version": "1.0.0",
+  "description": "Roblox Executor for macOS",
+  "scripts": {
+    "dev": "make clean && make && ./RobloxExecutor"
+  },
+  "author": "aboodmohd",
+  "license": "MIT"
+}

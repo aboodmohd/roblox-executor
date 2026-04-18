@@ -1,5 +1,8 @@
 CXX = clang++
-# Try multiple common include paths for Lua
+# Print include paths for debugging
+$(info Checking for Lua headers...)
+$(info $(shell ls /opt/homebrew/include/lua*))
+
 LUA_INCLUDES = -I/usr/local/include/lua -I/usr/local/include/lua5.4 -I/opt/homebrew/include/lua -I/opt/homebrew/include/lua5.4
 CXXFLAGS = -std=c++17 -Wall -O3 $(LUA_INCLUDES)
 LDFLAGS = -L$(shell brew --prefix)/lib -llua -lcurl

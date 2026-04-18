@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+// Try to include lua.hpp directly, if it fails, the user must install lua headers
 #include <lua.hpp>
 #include "logger.h"
 

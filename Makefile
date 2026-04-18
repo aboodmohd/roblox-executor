@@ -1,11 +1,11 @@
 CXX = clang++
 # Get Lua include and lib paths from brew
 LUA_PREFIX = $(shell brew --prefix lua)
-LUA_INCLUDE = $(LUA_PREFIX)/include
-LUA_LIB = $(LUA_PREFIX)/lib
+# Include both base and versioned subdirectory
+LUA_INCLUDE = -I$(LUA_PREFIX)/include -I$(LUA_PREFIX)/include/lua5.4 -I$(LUA_PREFIX)/include/lua
 
-CXXFLAGS = -std=c++17 -Wall -O3 -I$(LUA_INCLUDE)
-LDFLAGS = -L$(LUA_LIB) -llua -lcurl
+CXXFLAGS = -std=c++17 -Wall -O3 $(LUA_INCLUDE)
+LDFLAGS = -L$(LUA_PREFIX)/lib -llua -lcurl
 
 SRC = src/gui.mm
 OBJ = $(SRC:.mm=.o)

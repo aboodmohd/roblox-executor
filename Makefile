@@ -1,8 +1,10 @@
 CXX = clang++
-CXXFLAGS = -std=c++17 -Wall -O3
-LDFLAGS = -llua -lcurl
+# Add Homebrew include path for Lua
+LUA_INCLUDE = $(shell brew --prefix)/include/lua5.4
+CXXFLAGS = -std=c++17 -Wall -O3 -I$(LUA_INCLUDE)
+LDFLAGS = -L$(shell brew --prefix)/lib -llua5.4 -lcurl
 
-SRC = src/gui.mm src/main.cpp
+SRC = src/gui.mm
 OBJ = $(SRC:.mm=.o)
 TARGET = RobloxExecutor
 

@@ -1,5 +1,5 @@
 #import <Cocoa/Cocoa.h>
-#include "executor_backend.h" // Assuming backend logic is here
+#include "executor_backend.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 @property (strong) NSWindow *window;
@@ -31,8 +31,16 @@
 - (void)executeScript:(id)sender {
     NSString *input = [self.scriptInput stringValue];
     std::string url = [input UTF8String];
-    
-    // Call C++ backend
     runExecutorBackend(url);
 }
 @end
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        NSApplication *app = [NSApplication sharedApplication];
+        AppDelegate *delegate = [[AppDelegate alloc] init];
+        [app setDelegate:delegate];
+        [app run];
+    }
+    return 0;
+}

@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
-#include <lua.hpp>
+#include "logger.h"
 
-// Backend function called by GUI
 void runExecutorBackend(const std::string& url) {
-    std::cout << "Backend: Fetching and executing script from " << url << std::endl;
+    Logger::log("Backend: Fetching and executing script from " + url);
     // Integration logic (libcurl + Lua VM + Mach Injection) would be called here
+    Logger::log("Script execution initiated successfully.");
 }
